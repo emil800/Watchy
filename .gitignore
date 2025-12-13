@@ -64,6 +64,16 @@ avr-toolchain-*.zip
 /app/build/
 /arduino-core/build/
 
+/examples/WatchFaces/Basic
+/examples/WatchFaces/DOS
+/examples/WatchFaces/Pokemon
+/examples/WatchFaces/MacPaint
+/examples/WatchFaces/Mario
+/examples/WatchFaces/Tetris
+/examples/WatchFaces/StarryHorizon
+/examples/WatchFaces/7_SEG
+*.png
+
 manifest.mf
 nbbuild.xml
 nbproject
