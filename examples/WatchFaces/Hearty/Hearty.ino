@@ -19,6 +19,12 @@
 #include "esp_task_wdt.h"
 #include "esp_heap_caps.h"
 
+// Deep Sleep dependencies
+#if ENABLE_DEEP_SLEEP
+#include "esp_sleep.h"
+#include "driver/rtc_io.h"
+#endif
+
 // File system for logging
 #if ENABLE_FILE_LOGGING
 #include <FS.h>
@@ -67,15 +73,45 @@ unsigned long lastDisplayUpdate = 0;
 NimBLEClient* globalClient = nullptr;
 int lastDisplayedHR = 0;
 
+// RR Interval storage
+#if ENABLE_RR_INTERVALS
+float latestRRIntervals[4] = {0};  // Store up to 4 RR intervals
+int rrIntervalCount = 0;
+#endif
+
 // File logging function
 void logHRToFile(int hr) {
   #if ENABLE_FILE_LOGGING
   File file = LittleFS.open(HR_LOG_FILE_NAME, FILE_APPEND);
   if (file) {
     unsigned long timestamp = millis();
+    
+    #if ENABLE_RR_INTERVALS
+    // Log with RR intervals
+    if (rrIntervalCount > 0) {
+      file.printf("%lu,%d,", timestamp, hr);
+      for (int i = 0; i < rrIntervalCount; i++) {
+        file.printf("%.1f", latestRRIntervals[i]);
+        if (i < rrIntervalCount - 1) file.print(",");
+      }
+      file.println();
+    } else {
+      // No RR intervals, log without them
+      file.printf("%lu,%d,\n", timestamp, hr);
+    }
+    #else
+    // Log without RR intervals
     file.printf("%lu,%d\n", timestamp, hr);
+    #endif
+    
     file.close();
-    DEBUG_PRINTF("Logged HR: %d BPM to file\n", hr);
+    DEBUG_PRINTF("Logged HR: %d BPM", hr);
+    #if ENABLE_RR_INTERVALS
+    if (rrIntervalCount > 0) {
+      DEBUG_PRINTF(" with %d RR intervals", rrIntervalCount);
+    }
+    #endif
+    DEBUG_PRINTLN(" to file");
   } else {
     DEBUG_PRINTLN("Failed to open log file");
   }
@@ -110,19 +146,47 @@ void notifyCallback(NimBLERemoteCharacteristic* pChar, uint8_t* pData, size_t le
   if (length > 0) {
     uint8_t flags = pData[0];
     int hr = 0;
-
+    int offset = 0;
+    
+    // Parse heart rate
     if (flags & 0x01) {
       // HR is uint16
       if (length >= 3) {
         hr = pData[1] | (pData[2] << 8);
+        offset = 3;
       }
     } else {
       // HR is uint8
       if (length >= 2) {
         hr = pData[1];
+        offset = 2;
       }
     }
-
+    
+    // Parse RR intervals if present
+    #if ENABLE_RR_INTERVALS
+    rrIntervalCount = 0;
+    if (flags & 0x10) {  // Bit 4: RR intervals present
+      // RR intervals are in 1/1024 second units
+      while (offset + 1 < length && rrIntervalCount < 4) {
+        uint16_t raw_rr = pData[offset] | (pData[offset + 1] << 8);
+        // Convert from 1/1024s units to milliseconds
+        latestRRIntervals[rrIntervalCount] = (raw_rr / 1024.0) * 1000.0;
+        rrIntervalCount++;
+        offset += 2;
+      }
+      
+      if (rrIntervalCount > 0) {
+        DEBUG_PRINTF("RR intervals: ");
+        for (int i = 0; i < rrIntervalCount; i++) {
+          DEBUG_PRINTF("%.1fms", latestRRIntervals[i]);
+          if (i < rrIntervalCount - 1) DEBUG_PRINT(", ");
+        }
+        DEBUG_PRINTLN();
+      }
+    }
+    #endif
+    
     if (hr >= HR_MIN_VALID && hr <= HR_MAX_VALID) {
       latestHR = hr;
       hrReceived = true;
@@ -235,51 +299,143 @@ void runLoggingLoop() {
   delay(2000);
   
   while (isLogging) {
+    // Check connection first
     if (globalClient == nullptr || !globalClient->isConnected()) {
       DEBUG_PRINTLN("Lost connection");
       isLogging = false;
       break;
     }
     
-    updateHRDisplay(false);
-    
+    // Check buttons BEFORE doing display update (faster response)
     uint64_t btn = checkButtons();
     if (btn & DOWN_BTN_MASK) {
-      DEBUG_PRINTLN("Stop");
+      DEBUG_PRINTLN("Stop button pressed in logging loop");
       isLogging = false;
-      break;
+      break; // Exit immediately
     } else if (btn & UP_BTN_MASK) {
       DEBUG_PRINTLN("Refresh");
       updateHRDisplay(true);
     }
     
-    delay(100);
+    // Only update display if enough time has passed
+    unsigned long now = millis();
+    if (now - lastDisplayUpdate > DISPLAY_UPDATE_INTERVAL_MS) {
+      updateHRDisplay(false);
+    }
+    
+    // Shorter delay for more responsive button checking
+    delay(50); // Reduced from 100ms
     yield();
+    
+    // Double-check isLogging flag (in case it was set from main loop)
+    if (!isLogging) {
+      DEBUG_PRINTLN("isLogging set to false, exiting");
+      break;
+    }
   }
   
   DEBUG_PRINTLN("=== Loop Exit ===");
 }
 
-void stopLogging() {
-  if (isLogging) {
-    DEBUG_PRINTLN("Stopping...");
-    isLogging = false;
 
-    if (globalClient != nullptr && globalClient->isConnected()) {
+void stopLogging() {
+  DEBUG_PRINTLN("stopLogging() called");
+  DEBUG_FLUSH();
+  
+  // Always set flag first
+  isLogging = false;
+  
+  // Cleanup BLE connection
+  if (globalClient != nullptr) {
+    if (globalClient->isConnected()) {
+      DEBUG_PRINTLN("Disconnecting BLE client...");
       globalClient->disconnect();
       delay(300);
     }
-    
-    if (globalClient != nullptr) {
-      NimBLEDevice::deleteClient(globalClient);
-      globalClient = nullptr;
-    }
-
-    NimBLEDevice::deinit(true);
-    DEBUG_PRINTLN("Stopped");
-    printMemoryStatus();
+    DEBUG_PRINTLN("Deleting BLE client...");
+    NimBLEDevice::deleteClient(globalClient);
+    globalClient = nullptr;
   }
+
+  NimBLEDevice::deinit(true);
+  DEBUG_PRINTLN("BLE stopped");
+  printMemoryStatus();
+  
+  // Check if we should go to sleep (only if WiFi is also not active)
+  #if ENABLE_WIFI_SERVER
+  if (!keepWebserverAlive) {
+    delay(2000); // Give time to see "STOPPED" message
+    #if ENABLE_DEEP_SLEEP
+    goToDeepSleep();
+    #endif
+  }
+  #else
+  delay(2000); // Give time to see "STOPPED" message
+  #if ENABLE_DEEP_SLEEP
+  goToDeepSleep();
+  #endif
+  #endif
 }
+#if ENABLE_DEEP_SLEEP
+void goToDeepSleep() {
+  DEBUG_PRINTLN("Going to deep sleep...");
+  DEBUG_FLUSH();
+  
+  // Hibernate display to save power
+  display.hibernate();
+  
+  // Clean up BLE if still active
+  if (globalClient != nullptr) {
+    if (globalClient->isConnected()) {
+      globalClient->disconnect();
+    }
+    NimBLEDevice::deleteClient(globalClient);
+    globalClient = nullptr;
+  }
+  NimBLEDevice::deinit(true);
+  
+  // Clean up WiFi if still active
+  #if ENABLE_WIFI_SERVER
+  if (keepWebserverAlive) {
+    server.stop();
+    WiFi.mode(WIFI_OFF);
+  }
+  #endif
+  
+  // Show message on display
+  showMessage("Sleeping...", "Press button", "to wake");
+  delay(1000);
+  
+  // Configure wake sources for ESP32-S3
+  // Wake on button press
+  esp_sleep_enable_ext1_wakeup(
+      BTN_PIN_MASK,
+      ESP_EXT1_WAKEUP_ANY_LOW);
+  
+  // Configure button pins for RTC domain
+  rtc_gpio_set_direction((gpio_num_t)UP_BTN_PIN, RTC_GPIO_MODE_INPUT_ONLY);
+  rtc_gpio_pullup_en((gpio_num_t)UP_BTN_PIN);
+  rtc_gpio_set_direction((gpio_num_t)DOWN_BTN_PIN, RTC_GPIO_MODE_INPUT_ONLY);
+  rtc_gpio_pullup_en((gpio_num_t)DOWN_BTN_PIN);
+  rtc_gpio_set_direction((gpio_num_t)BACK_BTN_PIN, RTC_GPIO_MODE_INPUT_ONLY);
+  rtc_gpio_pullup_en((gpio_num_t)BACK_BTN_PIN);
+  rtc_gpio_set_direction((gpio_num_t)MENU_BTN_PIN, RTC_GPIO_MODE_INPUT_ONLY);
+  rtc_gpio_pullup_en((gpio_num_t)MENU_BTN_PIN);
+  
+  // Wake on USB plug/unplug (optional)
+  rtc_gpio_set_direction((gpio_num_t)USB_DET_PIN, RTC_GPIO_MODE_INPUT_ONLY);
+  rtc_gpio_pullup_en((gpio_num_t)USB_DET_PIN);
+  bool usbPlugged = (digitalRead(USB_DET_PIN) == 1);
+  esp_sleep_enable_ext0_wakeup((gpio_num_t)USB_DET_PIN, usbPlugged ? LOW : HIGH);
+  
+  DEBUG_PRINTLN("Entering deep sleep...");
+  DEBUG_FLUSH();
+  delay(100);
+  
+  // Enter deep sleep
+  esp_deep_sleep_start();
+}
+#endif
 
 void startBLE() {
   DEBUG_PRINTLN("=== Starting NimBLE ===");
@@ -655,7 +811,11 @@ void setup() {
       if (file) file.close();
       file = LittleFS.open(HR_LOG_FILE_NAME, "w");
       if (file) {
+        #if ENABLE_RR_INTERVALS
+        file.println("timestamp_ms,heart_rate_bpm,rr_interval_1_ms,rr_interval_2_ms,rr_interval_3_ms,rr_interval_4_ms");
+        #else
         file.println("timestamp_ms,heart_rate_bpm");
+        #endif
         file.close();
         DEBUG_PRINTLN("Created log file with header");
         DEBUG_FLUSH();
@@ -796,13 +956,21 @@ void loop() {
         showMessage("WiFi Off");
         DEBUG_PRINTLN("WiFi server stopped");
         DEBUG_FLUSH();
+        
+        // Check if we should go to sleep (only if logging is also not active)
+        if (!isLogging) {
+          delay(2000); // Give time to see "WiFi Off" message
+          #if ENABLE_DEEP_SLEEP
+          goToDeepSleep();
+          #endif
+        }
       }
     }
     delay(1);
     return; // Don't process buttons while server is running
   }
   #endif
-  
+
   // Heartbeat to show loop is running
   static unsigned long lastBeat = 0;
   if (millis() - lastBeat > 5000) {
@@ -829,7 +997,10 @@ void loop() {
     DEBUG_PRINTLN("!!! DOWN BUTTON PRESSED !!!");
     DEBUG_FLUSH();
     if (isLogging) {
-      stopLogging();
+      DEBUG_PRINTLN("Setting isLogging to false...");
+      isLogging = false; // Set flag first
+      delay(200); // Give runLoggingLoop time to exit
+      stopLogging(); // Then cleanup
       showMessage("STOPPED", "Press UP", "to restart");
     }
   }

@@ -56,6 +56,7 @@
 #define HR_MIN_VALID  1   // Minimum valid heart rate
 #define HR_MAX_VALID  255 // Maximum valid heart rate
 #define HR_WAIT_TIMEOUT_SEC 10  // Timeout waiting for first HR reading
+#define ENABLE_RR_INTERVALS true  // Set to true to log RR intervals (heart rate variability data)
 
 // Debug Configuration
 #define ENABLE_SERIAL_DEBUG true  // Set to false to disable all Serial debug output
@@ -82,5 +83,7 @@
 #define WIFI_AP_SSID "Watchy-HR"    // WiFi Access Point name (if WIFI_MODE_STATION is false)
 #define WIFI_AP_PASS "12345678"     // WiFi Access Point password (min 8 chars)
 
+// Deep Sleep Configuration
+#define ENABLE_DEEP_SLEEP true  // Set to true to enable deep sleep when idle
 
 #endif
