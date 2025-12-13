@@ -49,8 +49,8 @@
 // Display Configuration
 #define DISPLAY_UPDATE_INTERVAL_MS  5000  // Minimum time between display updates (ms)
 #define DISPLAY_INIT_BAUD           115200
-#define DISPLAY_INIT_RESET_DELAY   2
-#define DISPLAY_INIT_PARTIAL       false
+#define DISPLAY_INIT_RESET_DELAY    2
+#define DISPLAY_INIT_PARTIAL        false
 
 // HR Data Settings
 #define HR_MIN_VALID  1   // Minimum valid heart rate
@@ -58,21 +58,13 @@
 #define HR_WAIT_TIMEOUT_SEC 10  // Timeout waiting for first HR reading
 #define ENABLE_RR_INTERVALS true  // Set to true to log RR intervals (heart rate variability data)
 
-// Debug Configuration
-#define ENABLE_SERIAL_DEBUG true  // Set to false to disable all Serial debug output
-
 // File Logging Configuration
-#define ENABLE_FILE_LOGGING true   // Set to true to log HR data to file
 #define HR_LOG_FILE_NAME "/hr_log.csv"  // File name for heart rate log
 
-
 // WiFi Web Server Configuration (for downloading log file)
-#define ENABLE_WIFI_SERVER true   // Set to true to enable WiFi web server for file download
-
-// Option 1: Connect to existing WiFi network (recommended)
-#define WIFI_MODE_STATION true     // Set to true to connect to WiFi, false for Access Point mode
+// Option 1: Connect to existing WiFi network
 #define WIFI_SSID "Trololololo"   // Your WiFi network name
-#define WIFI_PASSWORD "lolololoooooooo" // Your WiFi password
+#define WIFI_PASSWORD "Peterpan555" // Your WiFi password
 // Static IP Configuration (optional, leave 0,0,0,0 for DHCP)
 #define STATIC_IP_ENABLED true
 #define STATIC_IP_ADDRESS {192, 168, 0, 40}
