@@ -1,43 +1,86 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
-//Weather Settings
-#define CITY_ID "2950159" //Berlin City https://openweathermap.org/current#cityid
+// Watchy 3.0 Pin Definitions
+#define WATCHY_V3_SDA 12
+#define WATCHY_V3_SCL 11
 
-//You can also use LAT,LON for your location instead of CITY_ID, but not both
-//#define LAT "40.7127" //New York City, Looked up on https://www.latlong.net/
-//#define LON "-74.0059"
+#define WATCHY_V3_SS    33
+#define WATCHY_V3_MOSI  48
+#define WATCHY_V3_MISO  46
+#define WATCHY_V3_SCK   47
 
-#ifdef CITY_ID
-    #define OPENWEATHERMAP_URL "http://api.openweathermap.org/data/2.5/weather?id={cityID}&lang={lang}&units={units}&appid={apiKey}" //open weather api using city ID
-#else
-    #define OPENWEATHERMAP_URL "http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&lang={lang}&units={units}&appid={apiKey}" //open weather api using lat lon
-#endif
+#define MENU_BTN_PIN  7
+#define BACK_BTN_PIN  6
+#define UP_BTN_PIN    0
+#define DOWN_BTN_PIN  8
 
-#define OPENWEATHERMAP_APIKEY "f058fe1cad2afe8e2ddc5d063a64cecb" //use your own API key :)
-#define TEMP_UNIT "metric" //metric = Celsius , imperial = Fahrenheit
-#define TEMP_LANG "en"
-#define WEATHER_UPDATE_INTERVAL 30 //must be greater than 5, measured in minutes
-//NTP Settings
-#define NTP_SERVER "pool.ntp.org"
-#define GMT_OFFSET_SEC 3600 * 1 //Berlin is UTC +1, will be overwritten by weather data
+#define DISPLAY_CS    33
+#define DISPLAY_DC    34
+#define DISPLAY_RES   35
+#define DISPLAY_BUSY  36
+#define ACC_INT_1_PIN 14
+#define ACC_INT_2_PIN 13
+#define VIB_MOTOR_PIN 17
+#define BATT_ADC_PIN 9
+#define CHRG_STATUS_PIN 10
+#define USB_DET_PIN 21
+#define RTC_INT_PIN -1 //not used
 
-watchySettings settings{
-    #ifdef CITY_ID
-        .cityID = CITY_ID,
-    #else
-        .cityID = "",
-        .lat = LAT,
-        .lon = LON,
-    #endif
-    .weatherAPIKey = OPENWEATHERMAP_APIKEY,
-    .weatherURL = OPENWEATHERMAP_URL,
-    .weatherUnit = TEMP_UNIT,
-    .weatherLang = TEMP_LANG,
-    .weatherUpdateInterval = WEATHER_UPDATE_INTERVAL,
-    .ntpServer = NTP_SERVER,
-    .gmtOffset = GMT_OFFSET_SEC,
-    .vibrateOClock = true,
-};
+// Button Masks
+#define MENU_BTN_MASK (BIT64(7))
+#define BACK_BTN_MASK (BIT64(6))
+#define UP_BTN_MASK   (BIT64(0))
+#define DOWN_BTN_MASK (BIT64(8))
+#define ACC_INT_MASK  (BIT64(14))
+#define BTN_PIN_MASK  MENU_BTN_MASK|BACK_BTN_MASK|UP_BTN_MASK|DOWN_BTN_MASK
+
+// BLE Configuration
+#define BLE_SERVICE_UUID 0x180D  // Heart Rate Service
+#define BLE_CHAR_UUID    0x2A37  // Heart Rate Measurement Characteristic
+#define BLE_DEVICE_NAME   "Watchy-HR"
+
+// BLE Scan Settings
+#define BLE_SCAN_DURATION_MS  5000  // Scan duration in milliseconds
+#define BLE_SCAN_INTERVAL_MS  100   // Scan interval in milliseconds
+#define BLE_SCAN_WINDOW_MS    99    // Scan window in milliseconds
+#define BLE_SCAN_ACTIVE       true  // Use active scanning
+
+// Display Configuration
+#define DISPLAY_UPDATE_INTERVAL_MS  5000  // Minimum time between display updates (ms)
+#define DISPLAY_INIT_BAUD           115200
+#define DISPLAY_INIT_RESET_DELAY   2
+#define DISPLAY_INIT_PARTIAL       false
+
+// HR Data Settings
+#define HR_MIN_VALID  1   // Minimum valid heart rate
+#define HR_MAX_VALID  255 // Maximum valid heart rate
+#define HR_WAIT_TIMEOUT_SEC 10  // Timeout waiting for first HR reading
+
+// Debug Configuration
+#define ENABLE_SERIAL_DEBUG true  // Set to false to disable all Serial debug output
+
+// File Logging Configuration
+#define ENABLE_FILE_LOGGING true   // Set to true to log HR data to file
+#define HR_LOG_FILE_NAME "/hr_log.csv"  // File name for heart rate log
+
+
+// WiFi Web Server Configuration (for downloading log file)
+#define ENABLE_WIFI_SERVER true   // Set to true to enable WiFi web server for file download
+
+// Option 1: Connect to existing WiFi network (recommended)
+#define WIFI_MODE_STATION true     // Set to true to connect to WiFi, false for Access Point mode
+#define WIFI_SSID "Trololololo"   // Your WiFi network name
+#define WIFI_PASSWORD "lolololoooooooo" // Your WiFi password
+// Static IP Configuration (optional, leave 0,0,0,0 for DHCP)
+#define STATIC_IP_ENABLED true
+#define STATIC_IP_ADDRESS {192, 168, 0, 40}
+#define STATIC_GATEWAY {192, 168, 0, 1}
+#define STATIC_SUBNET {255, 255, 255, 0}
+
+// Option 2: Access Point mode (fallback)
+#define WIFI_AP_SSID "Watchy-HR"    // WiFi Access Point name (if WIFI_MODE_STATION is false)
+#define WIFI_AP_PASS "12345678"     // WiFi Access Point password (min 8 chars)
+
 
 #endif
