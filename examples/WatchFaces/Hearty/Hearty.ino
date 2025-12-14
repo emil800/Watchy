@@ -52,8 +52,8 @@ int lastDisplayedHR = 0;
 
 // RR Interval storage
 #if ENABLE_RR_INTERVALS
-float latestRRIntervals[4] = {0};  // Store up to 4 RR intervals
-int rrIntervalCount = 0;
+uint16_t latestRRIntervals[4] = {0};  // Store up to 4 RR intervals
+uint8_t rrIntervalCount = 0;
 #endif
 
 // Include function headers (with inline implementations)
@@ -63,6 +63,10 @@ int rrIntervalCount = 0;
 #include "ble_functions.h"
 #include "wifi_functions.h"
 #include "sleep_functions.h"
+
+// Log buffer
+LogEntry logBuffer[LOG_BUFFER_SIZE];
+uint16_t logBufferIndex = 0;
 
 void setup() {
   // Vibrate to prove code is running

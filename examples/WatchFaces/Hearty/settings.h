@@ -53,7 +53,7 @@
 #define BLE_SCAN_ACTIVE       true  // Use active scanning
 
 // Display Configuration
-#define DISPLAY_UPDATE_INTERVAL_MS  5000  // Minimum time between display updates (ms)
+#define DISPLAY_UPDATE_INTERVAL_MS  600000  // Minimum time between display updates (ms)
 #define DISPLAY_INIT_BAUD           115200
 #define DISPLAY_INIT_RESET_DELAY    2
 #define DISPLAY_INIT_PARTIAL        false
@@ -66,11 +66,13 @@
 
 // File Logging Configuration
 #define HR_LOG_FILE_NAME "/hr_log.csv"  // File name for heart rate log
+#define LOG_BUFFER_SIZE 600 // How many readings to keep in RAM before writing to disk.
+
 
 // WiFi Web Server Configuration (for downloading log file)
 // Option 1: Connect to existing WiFi network
 #define WIFI_SSID "Trololololo"   // Your WiFi network name
-#define WIFI_PASSWORD "Peterpan555" // Your WiFi password
+#define WIFI_PASSWORD "lolololooo" // Your WiFi password
 // Static IP Configuration (optional, leave 0,0,0,0 for DHCP)
 #define STATIC_IP_ENABLED true
 #define STATIC_IP_ADDRESS {192, 168, 0, 40}

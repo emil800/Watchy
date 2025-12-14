@@ -75,8 +75,8 @@ inline void updateHRDisplay(bool forceUpdate = false) {
   const unsigned char* batteryPercentIcon = getBatteryBitmap(percentage);
   
   if (forceUpdate || 
-      (hrReceived && latestHR != lastDisplayedHR) ||
-      ((now - lastDisplayUpdate) > DISPLAY_UPDATE_INTERVAL_MS)) {
+      ((hrReceived && latestHR != lastDisplayedHR) &&  /* new hr is different and more than update interval passed */
+      ((now - lastDisplayUpdate) > DISPLAY_UPDATE_INTERVAL_MS))) {
     
     /* s_printf("Display update: HR=%d\n", latestHR) */
     /* s_printMemoryStatus() */

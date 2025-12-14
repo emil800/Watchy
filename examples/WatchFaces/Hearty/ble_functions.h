@@ -18,11 +18,6 @@ extern int lastDisplayedHR;
 extern NimBLEUUID serviceUUID;
 extern NimBLEUUID charUUID;
 
-#if ENABLE_RR_INTERVALS
-extern float latestRRIntervals[4];
-extern int rrIntervalCount;
-#endif
-
 inline void notifyCallback(NimBLERemoteCharacteristic* pChar, uint8_t* pData, size_t length, bool isNotify) {
   if (length > 0) {
     uint8_t flags = pData[0];
@@ -51,8 +46,8 @@ inline void notifyCallback(NimBLERemoteCharacteristic* pChar, uint8_t* pData, si
       // RR intervals are in 1/1024 second units
       while (offset + 1 < length && rrIntervalCount < 4) {
         uint16_t raw_rr = pData[offset] | (pData[offset + 1] << 8);
-        // Convert from 1/1024s units to milliseconds
-        latestRRIntervals[rrIntervalCount] = (raw_rr / 1024.0) * 1000.0;
+        // Unit is in 1/1024s!!
+        latestRRIntervals[rrIntervalCount] = (uint16_t)(raw_rr );
         rrIntervalCount++;
         offset += 2;
       }
@@ -60,7 +55,7 @@ inline void notifyCallback(NimBLERemoteCharacteristic* pChar, uint8_t* pData, si
       if (rrIntervalCount > 0) {
         /* s_printf("RR intervals: ") */
         for (int i = 0; i < rrIntervalCount; i++) {
-          /* s_printf("%.1fms", latestRRIntervals[i]) */
+          /* s_printf("%.1fms", ((latestRRIntervals[i] * 1000.0)/ 1024.0)) */
           if (i < rrIntervalCount - 1){
             /* s_print(", ") */
           }
@@ -76,7 +71,7 @@ inline void notifyCallback(NimBLERemoteCharacteristic* pChar, uint8_t* pData, si
       /* s_printf("HR: %d \n", hr) */
       
       // Log to file if enabled
-      logHRToFile(hr);
+      logHRToFile(hr, rrIntervalCount, &latestRRIntervals[0]);
     }
   }
 }
