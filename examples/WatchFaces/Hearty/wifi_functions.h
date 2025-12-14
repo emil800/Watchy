@@ -92,8 +92,7 @@ inline void startWebServer() {
   server.on("/delete", HTTP_GET, []() {
     if (LittleFS.remove(HR_LOG_FILE_NAME)) {
       server.send(200, "text/html", "<h1>File Deleted</h1><p><a href='/'>Back</a></p>");
-      DEBUG_PRINTLN("Log file deleted via web");
-      DEBUG_FLUSH();
+      /* s_println("Log file deleted via web") */
     } else {
       server.send(500, "text/plain", "Failed to delete file");
     }

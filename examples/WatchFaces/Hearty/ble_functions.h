@@ -86,7 +86,8 @@ inline void runLoggingLoop() {
   isLogging = true;
   lastDisplayUpdate = millis();
   
-  showMessage("Logging...", "UP=Refresh", "DOWN=Stop");
+  showMessage("Logging...");
+  drawWave();
   delay(2000);
   
   while (isLogging) {
@@ -146,7 +147,7 @@ inline void stopLogging() {
 
   NimBLEDevice::deinit(true);
   /* s_println("BLE stopped") */
-  printMemoryStatus();
+  /* s_printMemoryStatus() */
   
   // Check if we should go to sleep (only if WiFi is also not active)
   extern bool keepWebserverAlive;

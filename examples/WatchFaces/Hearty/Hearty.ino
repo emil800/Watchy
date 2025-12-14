@@ -146,7 +146,7 @@ void setup() {
   
   if (displayOk) {
     try {
-      showMessage("READY", "===>", "Press UP");
+      showMessage("READY", "Press UP");
       /* s_println("Display message shown!") */
     } catch (...) {
       /* s_println("ERROR: Display message failed!") */
@@ -228,7 +228,7 @@ void loop() {
     /* s_println("UP BUTTON PRESSED!") */
     if (!isLogging) {
       startBLE();
-      showMessage("READY", "===>", "for BLE");
+      showMessage("READY", "for BLE");
     } else {
       updateHRDisplay(true);
     }

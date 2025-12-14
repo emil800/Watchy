@@ -35,6 +35,12 @@
 #define ACC_INT_MASK  (BIT64(14))
 #define BTN_PIN_MASK  MENU_BTN_MASK|BACK_BTN_MASK|UP_BTN_MASK|DOWN_BTN_MASK
 
+// Battery
+#define BATTERY_PIN BATT_ADC_PIN
+#define MAX_VOLTAGE 4.2
+#define MIN_VOLTAGE 3.0
+#define BAT_VOLTAGE_DIV ((100.0f + 360.0f) / 360.0f) // From schematics 
+
 // BLE Configuration
 #define BLE_SERVICE_UUID 0x180D  // Heart Rate Service
 #define BLE_CHAR_UUID    0x2A37  // Heart Rate Measurement Characteristic

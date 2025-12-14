@@ -23,5 +23,24 @@ inline uint64_t checkButtons() {
   return 0;
 }
 
+
+uint8_t getBatteryPercentage() {
+  // Read Analog Value
+  int rawValue = analogRead(BATTERY_PIN);
+  
+  // Convert to Voltage
+  // 3.3V ref and voltage divider
+  float voltage = (rawValue / 4095.0) * 3.3 * BAT_VOLTAGE_DIV; 
+  
+  // Convert to Percentage
+  int percentage = map(voltage * 100, MIN_VOLTAGE * 100, MAX_VOLTAGE * 100, 0, 100);
+  
+  // Clamp results
+  if (percentage > 100) percentage = 100;
+  if (percentage < 0) percentage = 0;
+  
+  return (uint8_t)percentage;
+}
+
 #endif
 
