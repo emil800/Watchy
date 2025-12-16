@@ -163,7 +163,7 @@ inline void startBLE() {
   latestHR = 0;
   
   NimBLEDevice::init(BLE_DEVICE_NAME);
-  NimBLEDevice::setPower(ESP_PWR_LVL_P9);
+  NimBLEDevice::setPower(ESP_PWR_LVL_N9);
   
   NimBLEDevice::setSecurityAuth(false, false, true);
   NimBLEDevice::setSecurityIOCap(BLE_HS_IO_NO_INPUT_OUTPUT);
@@ -198,6 +198,15 @@ inline void startBLE() {
       
       delay(500);
       
+
+      /**
+      * minInterval: 60 * 1.25ms = 75ms
+      * maxInterval: 80 * 1.25ms = 100ms (Talk less often)
+      * latency: 3 (The HRM can skip 'checking in' 3 times if it has no new data. HUGE SAVER.)
+      * timeout: 600 * 10ms = 6000ms (Wait 6 seconds before declaring disconnect)
+      */
+      pClient->updateConnParams(120, 160, 3, 600);
+
       // connect() expects a pointer to NimBLEAdvertisedDevice
       if (!pClient->connect(device)) {
         /* s_println("Connect fail") */

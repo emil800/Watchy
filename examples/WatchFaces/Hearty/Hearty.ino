@@ -69,6 +69,10 @@ LogEntry logBuffer[LOG_BUFFER_SIZE];
 uint16_t logBufferIndex = 0;
 
 void setup() {
+  // KILL WIFI IMMEDIATELY
+  WiFi.mode(WIFI_OFF);
+  btStop(); // Stop Classic Bluetooth (we only want BLE)
+  
   // Vibrate to prove code is running
   pinMode(VIB_MOTOR_PIN, OUTPUT);
   digitalWrite(VIB_MOTOR_PIN, true);
